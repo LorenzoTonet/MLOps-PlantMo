@@ -1,6 +1,25 @@
 #include <math.h>
 #include <stdlib.h>
 
+// Inclusion of library for working with temperature sensor.
+#include "dht_nonblocking.h"
+
+// Definition of sensor type.
+#define DHT_SENSOR_TYPE DHT_TYPE_11
+#define WINDOW_SIZE 50
+
+// Output periodicity (In intervals of 50 milliseconds)
+static const int PERIODICITY = 100;
+
+// Pin definition
+static const int DHT_SENSOR_PIN = 2;
+static const int LIGHT_SENSOR_PIN = A0;
+static const int SOIL_SENSOR_PIN = A1;
+
+// Setup 
+DHT_nonblocking dht_sensor(DHT_SENSOR_PIN, DHT_SENSOR_TYPE);
+
+
 typedef struct Window {
     int Nobs;
     int cpos;
@@ -8,9 +27,12 @@ typedef struct Window {
 };
 
 // Variable definitions
+int counter;
+float temp_temperature;
+float temp_humidty;
 double light_sensor_value;
 double temp_sensor_value;
-double air_humid_sensor_value;
+double humid_sensor_value;
 double soil_humid_sensor_value;
 
 Window * light_sensor_window;
@@ -123,36 +145,60 @@ void serialPrintWindow(Window * wind, int digits)
     Serial.print(minWind(wind), digits);
 }
 
+
+/*
+ * Poll for a measurement, keeping the state machine alive.  Returns
+ * true if a measurement is available.
+ */
+static bool measure_temp_and_humidity(float * temperature, float * humidity)
+{
+    static unsigned long measurement_timestamp = millis( );
+    if (dht_sensor.measure(temperature, humidity) == true)
+    {
+        measurement_timestamp = millis( );
+        return( true );
+    }
+    return(false);
+}
+
+
 void setup()
 {
-    pinMode(2, INPUT); // Temperatura & Humid
-    pinMode(A0, INPUT); // Luce
-    pinMode(A1, INPUT); // soil humid
-    pinMode(A2, INPUT); // ??
+    pinMode(DHT_SENSOR_PIN, INPUT);
+    pinMode(LIGHT_SENSOR_PIN, INPUT);
+    pinMode(SOIL_SENSOR_PIN, INPUT);
 
     Serial.begin(115200);
     Serial.setTimeout(10);
 
-    int wsize = 128;
+    counter = 0;
 
-    light_sensor_window      = newWind(wsize);
-    temp_sensor_window       = newWind(wsize);
-    air_humid_sensor_window  = newWind(wsize);
-    soil_humid_sensor_window = newWind(wsize);
+    light_sensor_window      = newWind(WINDOW_SIZE);
+    temp_sensor_window       = newWind(WINDOW_SIZE);
+    air_humid_sensor_window  = newWind(WINDOW_SIZE);
+    soil_humid_sensor_window = newWind(WINDOW_SIZE);
 }
 
 void loop()
 {
+    // Increment current iteration counter
+    counter++;
+
     // Read a value from the sensors from the respective pins
-    temp_sensor_value       = digitalRead(2);
-    light_sensor_value      = analogRead(A0);
-    air_humid_sensor_value  = analogRead(A1);
-    soil_humid_sensor_value = analogRead(A2);
+    light_sensor_value      = 1023 - analogRead(LIGHT_SENSOR_PIN);
+    soil_humid_sensor_value = 1023 - analogRead(SOIL_SENSOR_PIN);
+
+    // Write to the variables the current value of humidity and temperature
+    if (measure_temp_and_humidity(&temp_temperature, &temp_humidty) == true)
+    {
+        temp_sensor_value = (double) temp_temperature;
+        humid_sensor_value = (double) temp_humidty;
+    }
 
     // Add observations to the respective windows
     addObsWind(light_sensor_window, light_sensor_value);
     addObsWind(temp_sensor_window, temp_sensor_value);
-    addObsWind(air_humid_sensor_window, air_humid_sensor_value);
+    addObsWind(air_humid_sensor_window, humid_sensor_value);
     addObsWind(soil_humid_sensor_window, soil_humid_sensor_value);
 
     // Print to the serial terminal the statistics
@@ -165,27 +211,33 @@ void loop()
     //  - Maximum of the Window
     //  - Minimum of the Window
 
-    Serial.print(light_sensor_value, 8);
-    Serial.print(", ");
-    serialPrintWindow(light_sensor_window, 8);
-    Serial.print(", ");
+    // This means a certain time has passed
+    // So we output
+    if (counter == PERIODICITY)
+    {
+        counter = 0;
 
-    Serial.print(temp_sensor_value, 8);
-    Serial.print(", ");
-    serialPrintWindow(temp_sensor_window, 8);
-    Serial.print(", ");
+        Serial.print(light_sensor_value, 8);
+        Serial.print(",");
+        serialPrintWindow(light_sensor_window, 8);
+        Serial.print(",");
 
-    Serial.print(air_humid_sensor_value, 8);
-    Serial.print(", ");
-    serialPrintWindow(air_humid_sensor_window, 8);
-    Serial.print(", ");
+        Serial.print(temp_sensor_value, 8);
+        Serial.print(",");
+        serialPrintWindow(temp_sensor_window, 8);
+        Serial.print(",");
 
-    Serial.print(soil_humid_sensor_value, 8);
-    Serial.print(", ");
-    serialPrintWindow(soil_humid_sensor_window, 8);
+        Serial.print(humid_sensor_value, 8);
+        Serial.print(",");
+        serialPrintWindow(air_humid_sensor_window, 8);
+        Serial.print(",");
 
-    // End of the line
-    Serial.println();
+        Serial.print(soil_humid_sensor_value, 8);
+        Serial.print(",");
+        serialPrintWindow(soil_humid_sensor_window, 8);
 
-    delay(15);
+        // End of the line
+        Serial.println();
+    }
+    delay(20);
 }
