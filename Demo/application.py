@@ -14,7 +14,11 @@ import matplotlib.pyplot as plt
 import random
 from datetime import datetime
 
-from utils import *
+from src.config_handling import *
+from src.plotting_functions import *
+from src.data_generators import *
+from src.plant_data_management import *
+
 # -----------------------------
 # STREAMLIT CONFIG
 # -----------------------------
@@ -73,19 +77,6 @@ selected_plant = st.sidebar.selectbox(
     index=0
 )
 
-def init_plant_data(plant_name):
-    """Initialize data structures for a plant if not exists."""
-    if f"data_{plant_name}" not in st.session_state:
-        st.session_state[f"data_{plant_name}"] = pd.DataFrame(columns=["timestamp"] + st.session_state.sensors)
-
-
-def add_plant(plant_name):
-    """Add a new plant to the monitoring list."""
-    plant_name = plant_name.strip()
-    if plant_name and plant_name not in st.session_state.plants:
-        st.session_state.plants.append(plant_name)
-        init_plant_data(plant_name)
-        save_config(CONFIG_FILE)
 
 st.sidebar.markdown("---")
 
@@ -95,9 +86,26 @@ with st.sidebar.expander("➕ Add New Plant"):
         submitted = st.form_submit_button("Add")
 
         if submitted and new_plant_name.strip():
-            add_plant(new_plant_name)
+            add_plant(new_plant_name, CONFIG_FILE)
             st.success(f"🌱 Plant '{new_plant_name}' added")
             st.rerun()
+
+with st.sidebar.expander("🗑️ Remove Plant"):
+    if st.session_state.plants:
+        plant_to_remove = st.selectbox(
+            "Select plant to remove",
+            st.session_state.plants,
+            key="plant_to_remove",
+        )
+
+        confirm = st.button("Remove", type="primary")
+
+        if confirm:
+            remove_plant(plant_to_remove, CONFIG_FILE)
+            st.success(f"🗑️ Plant '{plant_to_remove}' removed")
+            st.rerun()
+    else:
+        st.info("No plants to remove.")
 
 st.sidebar.markdown("---")
 # -----------------------------
