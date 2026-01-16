@@ -6,3 +6,7 @@ plant_simulation_animation.mp4
 Data/main.py
 Data/synthetic_dataset_stats.csv
 Data/read_plot.py
+
+# local data logging directory and W&B folder
+wandb
+Server/data/*
