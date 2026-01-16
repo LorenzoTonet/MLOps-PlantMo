@@ -6,15 +6,17 @@
 
 // Definition of sensor type.
 #define DHT_SENSOR_TYPE DHT_TYPE_11
-#define WINDOW_SIZE 50
+#define WINDOW_SIZE 6
 
-// Output periodicity (In intervals of 50 milliseconds)
-static const int PERIODICITY = 100;
+// Output periodicity (In intervals of 10 seconds)
+// = one log every five minutes
+static const int PERIODICITY = 1 * 6;
 
 // Pin definition
 static const int DHT_SENSOR_PIN = 2;
 static const int LIGHT_SENSOR_PIN = A0;
 static const int SOIL_SENSOR_PIN = A1;
+static const int DRY_WARNING_PIN = 7;
 
 // Setup 
 DHT_nonblocking dht_sensor(DHT_SENSOR_PIN, DHT_SENSOR_TYPE);
@@ -167,6 +169,7 @@ void setup()
     pinMode(DHT_SENSOR_PIN, INPUT);
     pinMode(LIGHT_SENSOR_PIN, INPUT);
     pinMode(SOIL_SENSOR_PIN, INPUT);
+    pinMode(DRY_WARNING_PIN, OUTPUT);
 
     Serial.begin(115200);
     Serial.setTimeout(10);
@@ -195,6 +198,15 @@ void loop()
         humid_sensor_value = (double) temp_humidty;
     }
 
+    // Humidity warning
+    if (soil_humid_sensor_value < 250)
+    {
+        digitalWrite(DRY_WARNING_PIN, counter % 2);
+    } else {
+        digitalWrite(DRY_WARNING_PIN, 0);
+    }
+
+
     // Add observations to the respective windows
     addObsWind(light_sensor_window, light_sensor_value);
     addObsWind(temp_sensor_window, temp_sensor_value);
@@ -216,6 +228,9 @@ void loop()
     if (counter == PERIODICITY)
     {
         counter = 0;
+
+        // Print plant ID, currently a placeholder.
+        Serial.print("1,");
 
         Serial.print(light_sensor_value, 8);
         Serial.print(",");
@@ -239,5 +254,5 @@ void loop()
         // End of the line
         Serial.println();
     }
-    delay(20);
+    delay(1000 * 10);
 }
