@@ -29,12 +29,11 @@ def prepare_data(stats_df):
     """
     df = stats_df.copy()
 
-    df = stats_df.copy()
-    df.columns = ['_'.join(col).strip() for col in df.columns.values]
+    df.columns = [col.strip() for col in df.columns]
 
     # N-HITS requires these 3 specific columns: 'ds', 'unique_id', 'y'
     # ds is the datetime in datetime format
-    df['ds'] = df.index
+    df['ds'] = df['timestamp'].astype('datetime64[ns]')
     # unique_id
     df['unique_id'] = df['plant_id']
     # y is the target variable, in our case soil humidity
@@ -68,7 +67,7 @@ def train(df):
 
     # define all exogenous columns
     # cols I'll know in the future
-    futr_exog = [col for col in df.columns if col in ['time_sin', 'time_cos']]
+    futr_exog = [col for col in df.columns if col in ['time_sin', 'time_cos', 'is_watering']]
     # cols I won't know in the future
     hist_exog = [col for col in df.columns if col not in ['ds', 'unique_id', 'y'] + futr_exog]
 
@@ -117,7 +116,7 @@ def predict(current_df, nf):
 
     # build the future dataframe with cyclical features
     future_dates = pd.date_range(
-        start=pd.Timestamp(current_df) + pd.Timedelta(minutes=5), 
+        start=pd.Timestamp(current_df['ds'].iloc[-1]) + pd.Timedelta(minutes=5), 
         periods=horizon, 
         freq='5min'
     )
@@ -130,7 +129,7 @@ def predict(current_df, nf):
     
     futr_df['time_sin'] = np.sin(2 * np.pi * ((futr_df['ds'].dt.hour * 60) + futr_df['ds'].dt.minute) / 1440)
     futr_df['time_cos'] = np.cos(2 * np.pi * ((futr_df['ds'].dt.hour * 60) + futr_df['ds'].dt.minute) / 1440)
-
+    futr_df['is_watering'] = 0  # assume no watering in the future
 
     # predict
     forecast_df = nf.predict(df=current_df, futr_df=futr_df)
