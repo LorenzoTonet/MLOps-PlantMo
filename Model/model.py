@@ -1,6 +1,5 @@
 import shutil
 import pandas as pd
-from Data.dataset import synthetic_dataset
 import numpy as np
 import wandb
 from neuralforecast import NeuralForecast
@@ -40,7 +39,7 @@ def prepare_data(stats_df):
     # ds is the datetime in datetime format
     df['ds'] = df['timestamp'].astype('datetime64[ns]')
     # unique_id
-    df['unique_id'] = df['plant_id']
+    df['unique_id'] = 1
     # y is the target variable, in our case soil humidity
     df['y'] = df['water_w_mean']
 
@@ -55,6 +54,8 @@ def prepare_data(stats_df):
         # mark the spike and the next 3 samples as watering event
         loc = df.index.get_loc(idx)
         df.iloc[loc : loc + 4, df.columns.get_loc('is_watering')] = 1
+
+    df = df[['ds', 'unique_id', 'y', 'time_sin', 'time_cos', 'is_watering', 'light_w_mean', 'temp_w_mean', 'humid_w_mean', 'water_w_mean', 'light_w_sd', 'humid_w_sd', 'temp_w_sd', 'water_w_sd']]
 
     return df
 

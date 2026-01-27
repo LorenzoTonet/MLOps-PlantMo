@@ -26,9 +26,9 @@ if __name__ == "__main__":
     df = prepare_data(stats_df)
     # train
     model, mae = train(df)
-    print('\n\n\n')
+    print('\n\n')
     print('Model:\n', model)
-    print('\n\n\n')
+    print('\n')
     print('MAE:\n', mae)
-    print('\n\n\n')
+    print('\n')
     print("Training complete. Model saved.\n")
