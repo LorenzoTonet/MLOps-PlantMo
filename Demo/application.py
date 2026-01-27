@@ -25,6 +25,7 @@ warnings.filterwarnings('ignore', category=UserWarning, module='matplotlib')
 # -----------------------------
 
 CONFIG_FILE = Path("greenhouse_info.json")
+config = load_config(CONFIG_FILE)
 
 Y_RANGES = {
     "light": (0, 1023),
@@ -51,7 +52,6 @@ SENSOR_COLORS = {
 st.set_page_config(page_title="Greenhouse Monitor", layout="wide")
 st.title("Greenhouse Monitoring Dashboard")
 
-config = load_config(CONFIG_FILE)
 
 if "sensors" not in st.session_state:
     st.session_state.sensors = config["sensors"]
@@ -69,7 +69,7 @@ if "sensor_gen" not in st.session_state:
 if "monitoring" not in st.session_state:
     st.session_state.monitoring = False
 
-# Initialize thresholds for each sensor
+# Initialize default thresholds for each sensor
 if "thresholds" not in st.session_state:
     st.session_state.thresholds = {
         "light": {"min": 200, "max": 800, "enabled": False},
@@ -90,24 +90,30 @@ connection_mode = st.sidebar.radio(
 )
 
 if connection_mode == "WaB":
-    default_ip = st.session_state.get("ip", "127.0.0.1")
-    default_port = st.session_state.get("port", "8000")
-    default_project = st.session_state.get("wab_project", "greenhouse-monitoring")
-    default_entity = st.session_state.get("wab_entity", "your-entity")
-    
-    ip = st.sidebar.text_input("Server IP", default_ip)
-    port = st.sidebar.text_input("Server Port", default_port)
+    default_project = st.session_state.get("wab_project", "sensor-read-test")
+    default_entity = st.session_state.get("wab_entity", "MLOps-PlantProject")
     wab_project = st.sidebar.text_input("W&B Project", default_project)
     wab_entity = st.sidebar.text_input("W&B Entity", default_entity)
-    
-    st.session_state.ip = ip
-    st.session_state.port = port
     st.session_state.wab_project = wab_project
     st.session_state.wab_entity = wab_entity
-    
-    STREAM_URL = f"http://{ip}:{port}/stream"
-    st.sidebar.markdown(f"**Connected to:** `{STREAM_URL}`")
     st.sidebar.markdown(f"**W&B Project:** `{wab_entity}/{wab_project}`")
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("W&B Polling Settings")
+    
+    poll_interval = st.sidebar.slider(
+        "Check for new data every (seconds)",
+        min_value=5,
+        max_value=60,
+        value=10,
+        step=5,
+        help="How often to check W&B for new data"
+    )
+    
+    st.session_state.wab_poll_interval = poll_interval
+    
+    # Show W&B connection status
+    show_wab_status()
+
 
 elif connection_mode == "Random Data":
     st.sidebar.markdown("**Mode:** Random Data Generation")
@@ -251,7 +257,6 @@ for sensor in SENSORS:
 # LIVE PLOTTING LOOP - SMOOTH UPDATE
 # -----------------------------
 
-
 if st.session_state.monitoring:
     
     while st.session_state.monitoring:
@@ -262,6 +267,9 @@ if st.session_state.monitoring:
             snapshot = [next(st.session_state.sensor_gen)]
         elif connection_mode == "WaB":
             snapshot = fetch_wab_data()
+            print(f"Fetched new samples from W&B")
+            if len(snapshot) > 0:
+                print(snapshot)
         else:
             snapshot = []
 
