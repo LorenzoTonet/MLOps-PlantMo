@@ -97,7 +97,7 @@ def train(df):
     return nf
 
 
-def predict(current_df, nf):
+def predict(current_df, nf, threshold=30.0):
     '''
     Predict future values using the trained N-HITS model.
 
@@ -131,7 +131,17 @@ def predict(current_df, nf):
     futr_df['time_cos'] = np.cos(2 * np.pi * ((futr_df['ds'].dt.hour * 60) + futr_df['ds'].dt.minute) / 1440)
     futr_df['is_watering'] = 0  # assume no watering in the future
 
-    # predict
+    # predict time series
     forecast_df = nf.predict(df=current_df, futr_df=futr_df)
 
-    return forecast_df
+    # compute the timestep of the next watering event (when the prediction goes below a threshold)
+    # if there is no such event, we return the prediction at the last horizon step
+    below_threshold = forecast_df[forecast_df['NHITS'] < threshold]
+    if not below_threshold.empty:
+        next_watering_time = below_threshold['ds'].iloc[0]
+        print(f"Next watering event predicted at: {next_watering_time}")
+        return 1, next_watering_time, forecast_df
+
+    print("No watering event predicted within the forecast horizon.")
+
+    return -1, forecast_df['NHITS'].iloc[-1], forecast_df
