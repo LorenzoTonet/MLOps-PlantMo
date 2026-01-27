@@ -85,26 +85,16 @@ def fetch_wab_data():
         latest_run = runs[0]
         current_step = latest_run.lastHistoryStep
         
-        # CORREZIONE: controlla se c'è un nuovo step PRIMA di fetchare
         if current_step <= st.session_state.last_wab_step:
             return []
         
-        # CORREZIONE: usa scan_history correttamente
-        # Opzione 1: prendi solo l'ultimo step
         history = list(latest_run.scan_history(min_step=current_step))
-        
-        # Opzione 2: se la prima non funziona, prova questa
-        # history = list(latest_run.scan_history())
-        # if history:
-        #     history = [history[-1]]  # prendi solo l'ultimo record
         
         if not history:
             return []
         
         last_record = history[-1]
         
-        # CORREZIONE: il timestamp check è ridondante se già controlli lo step
-        # ma lo lascio come ulteriore sicurezza
         record_timestamp = last_record.get("_timestamp") or last_record.get("timestamp")
         if record_timestamp and record_timestamp == st.session_state.last_wab_timestamp:
             return []
@@ -141,7 +131,6 @@ def fetch_wab_data():
             "water_sd": filtered_data.get("water_w_sd", 0.0),
         }
         
-        # Aggiorna DOPO aver creato sensor_data con successo
         st.session_state.last_wab_step = current_step
         st.session_state.last_wab_timestamp = record_timestamp
         
@@ -150,7 +139,7 @@ def fetch_wab_data():
     except Exception as e:
         st.sidebar.error(f"W&B Error: {str(e)}")
         import traceback
-        st.sidebar.error(traceback.format_exc())  # AGGIUNTO: per debug più dettagliato
+        st.sidebar.error(traceback.format_exc())
         return []
     
 def format_timestamp(ts):
