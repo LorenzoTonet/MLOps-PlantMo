@@ -80,15 +80,16 @@ pip install -r requirements.txt
 ```
 
 ### Quick Start
+1. **Install the circuit-board in your greenhouse and follow "Installation instructions"**
+   
+3. **Create a W&B API-Key and update api_key.json** (if not already done)
 
-1. **Create a W&B API-Key and update api_key.json** (if not already done):
-
-2. **Launch the dashboard**:
+4. **Launch the dashboard**:
    ```bash
    streamlit run executable.py
    ```
 
-3. **Add your plants, customize threshold values, set your ideal update time and the number of data-points to visualize** (can be easily done frome the sideboard!):
+5. **Add your plants, customize threshold values, set your ideal update time and the number of data-points to visualize** (can be easily done frome the sideboard!):
 <p align="center">
   <img src="https://github.com/user-attachments/assets/80d47b29-adc4-40bc-8b14-3ea374643f34" width="270" />
   <img src="https://github.com/user-attachments/assets/684f479c-1e26-46c8-b6d3-9ef7706bf4ea" width="270" />
@@ -96,7 +97,7 @@ pip install -r requirements.txt
 </p>
 
 
-4. **Take care of your plants!**
+5. **Take care of your plants!**
 
 ## Documentation
 
