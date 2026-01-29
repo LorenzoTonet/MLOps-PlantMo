@@ -67,7 +67,7 @@ if "mean_sensors" not in st.session_state:
     st.session_state.mean_sensors = config["mean_sensors"]
 
 if "sensor_gen" not in st.session_state:
-    st.session_state.sensor_gen = sensor_data_generator("Data/plant_data.csv")
+    st.session_state.sensor_gen = sensor_data_generator("Demo/Data/plant_data.csv")
 
 # Initialize flag for monitoring state
 if "monitoring" not in st.session_state:
@@ -271,7 +271,7 @@ for sensor in SENSORS:
 if st.session_state.monitoring:
     
     while st.session_state.monitoring:
-        if not st.session_state.first_data_pulled:
+        if not st.session_state.first_data_pulled and connection_mode == "WaB":
             hist = fetch_historic_data(HISTORY_LENGTH)
             print(hist)
             for obs in hist:
@@ -317,13 +317,18 @@ if st.session_state.monitoring:
             st.session_state[f"data_{plant_name}"] = df
 
         # Model inference
-        model = st.session_state.model
-        print(df)
-        treated_data = prepare_data(df)
-        _, _, preddf = predict(treated_data, model, 300)
+        try:
+            model = st.session_state.model
+            print(df)
+            treated_data = prepare_data(df)
+            _, _, preddf = predict(treated_data, model, 300)
+
+        except Exception as e:
+            print("Model inference error:", e)
+            preddf = None
 
         for sensor in SENSORS:
-            if sensor == "water":
+            if sensor == "water" and preddf is not None:
                 fig = plot_sensor_wtr(selected_plant, sensor, preddf, SENSOR_COLORS, SENSOR_LABELS, Y_RANGES, MAX_POINTS)
             else:
                 fig = plot_sensor(selected_plant, sensor, SENSOR_COLORS, SENSOR_LABELS, Y_RANGES, MAX_POINTS)
